@@ -161,20 +161,48 @@ class GameStateManager {
 
     // 檢查是否可以轉換階段
     canAdvancePhase(userMessage, contextAnalysis) {
-        const currentConfig = this.getPhaseConfiguration(this.currentState.phase);
-        
-        // 簡單的完成檢查邏輯
-        const completionKeywords = {
-            [this.GAME_PHASES.PLAYER_COUNT_SETUP]: ['人', '個', '三', '四', '五'],
-            [this.GAME_PHASES.CARD_LAYOUT_SETUP]: ['排好', '完成', '好了'],
-            [this.GAME_PHASES.SECRET_SELECTION]: ['選好', '選了', '完成'],
-            [this.GAME_PHASES.HAND_CARDS_SETUP]: ['抽好', '準備好', '完成'],
-            [this.GAME_PHASES.ROUND_1_CLUE]: ['打出', '放了', '線索'],
-            [this.GAME_PHASES.ROUND_1_ELIMINATION]: ['淘汰', '移除', '完成']
+        const currentPhase = this.currentState.phase;
+
+        console.log(`🔍 GameStateManager: 檢查階段推進 - 當前階段: ${currentPhase}, 用戶消息: "${userMessage}"`);
+
+        // 特殊處理：從 NOT_STARTED 到 PLAYER_COUNT_SETUP
+        if (currentPhase === this.GAME_PHASES.NOT_STARTED) {
+            if (userMessage.includes('教') || userMessage.includes('玩') || userMessage.includes('學習')) {
+                console.log(`✅ GameStateManager: 觸發遊戲開始`);
+                return true;
+            }
+        }
+
+        // 階段特定的完成檢查
+        const completionChecks = {
+            [this.GAME_PHASES.PLAYER_COUNT_SETUP]: (msg) => {
+                const hasNumber = /(\d+).*人|三|四|五|六|七|八|九|十/.test(msg);
+                console.log(`🔍 人數檢查: ${hasNumber ? '✅' : '❌'} - "${msg}"`);
+                return hasNumber;
+            },
+            [this.GAME_PHASES.CARD_LAYOUT_SETUP]: (msg) => {
+                const isComplete = /排好|完成|好了|佈局好/.test(msg);
+                console.log(`🔍 佈局檢查: ${isComplete ? '✅' : '❌'} - "${msg}"`);
+                return isComplete;
+            },
+            [this.GAME_PHASES.SECRET_SELECTION]: (msg) => {
+                const isComplete = /選好|選了|完成|秘密.*好/.test(msg);
+                console.log(`🔍 秘密選擇檢查: ${isComplete ? '✅' : '❌'} - "${msg}"`);
+                return isComplete;
+            },
+            [this.GAME_PHASES.HAND_CARDS_SETUP]: (msg) => {
+                const isComplete = /抽好|準備好|手牌.*好|完成/.test(msg);
+                console.log(`🔍 手牌檢查: ${isComplete ? '✅' : '❌'} - "${msg}"`);
+                return isComplete;
+            }
         };
 
-        const keywords = completionKeywords[this.currentState.phase] || [];
-        return keywords.some(keyword => userMessage.includes(keyword));
+        const checkFunction = completionChecks[currentPhase];
+        if (checkFunction) {
+            return checkFunction(userMessage);
+        }
+
+        return false;
     }
 
     // 重置遊戲狀態

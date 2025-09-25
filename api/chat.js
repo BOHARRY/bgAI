@@ -1,6 +1,4 @@
 // Vercel API 路由 - 處理 AI 聊天請求
-import fs from 'fs';
-import path from 'path';
 
 // 簡化版的 AI 處理器 - 直接在這裡實現核心邏輯
 class SimpleAIHandler {
@@ -152,7 +150,7 @@ async function callOpenAI(messages) {
 }
 
 // 主要 API 處理函數
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // 設置 CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

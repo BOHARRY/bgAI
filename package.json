@@ -3,7 +3,6 @@
   "version": "1.0.0-mvp",
   "description": "Similo AI 陪玩員 - 專業的 Similo 桌遊助手 MVP",
   "main": "api/chat.js",
-  "type": "module",
   "scripts": {
     "start": "vercel dev",
     "dev": "vercel dev",

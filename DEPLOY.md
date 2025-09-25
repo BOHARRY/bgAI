@@ -5,15 +5,18 @@
 ### 1. **在 Vercel 界面中的設置**
 
 #### Framework Preset
-- 選擇：**"Other"**
+- 選擇：**"Other"** ✅
 
 #### Root Directory
-- 保持：**"./"** (根目錄)
+- 保持：**"./"** (根目錄) ✅
 
-#### Build and Output Settings
-- **Build Command**: `echo 'No build step required'`
-- **Output Directory**: `public`
-- **Install Command**: `npm install`
+#### Build and Output Settings (可選，通常不需要設置)
+- Vercel 會自動檢測並處理
+
+### ⚠️ **常見錯誤已修正**
+- ✅ 修正了 `vercel.json` 中 `functions` 和 `builds` 衝突問題
+- ✅ 使用 CommonJS 格式避免模組導入問題
+- ✅ 簡化配置文件
 
 ### 2. **Environment Variables (環境變數)**
 

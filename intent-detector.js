@@ -81,12 +81,30 @@ ${contextSummary}
 
 **主要意圖類型**：
 - **chitchat** - 純聊天、問候、感謝
-- **rule_question** - 規則詢問（可直接回答）
-- **start_game** - 想要開始遊戲（需要環境感知）
+- **rule_question** - 詢問具體規則細節（如「線索卡怎麼放？」「怎麼淘汰？」）
+- **start_game** - 想要學習並開始遊戲（如「教我玩」「怎麼玩」「可以開始嗎」）
 - **game_action** - 遊戲中的具體行動
 - **progress_control** - 流程控制（暫停、重來、繼續）
 - **delayed_response** - 延遲回應（回答之前的問題）
 - **environment_info** - 提供環境信息（玩家人數、經驗等）
+
+🎯 **重要區分**：
+- 「你可以教我怎麼玩嗎？」= **start_game** （想要學習並開始）
+- 「怎麼玩？」= **start_game** （想要學習並開始）
+- 「可以開始嗎？」= **start_game** （想要學習並開始）
+- 「教我玩」= **start_game** （想要學習並開始）
+- 「線索卡要怎麼放？」= **rule_question** （詢問具體規則）
+- 「淘汰規則是什麼？」= **rule_question** （詢問具體規則）
+- 「我們有4個人」= **environment_info** （提供環境信息）
+
+⚠️ **關鍵判斷**：
+如果用戶想要「學習如何玩」或「開始遊戲」→ **start_game**
+如果用戶詢問「具體規則細節」→ **rule_question**
+
+🎮 **start_game 意圖的回應策略**：
+- approach: "environment_sensing" （必須進行環境感知）
+- environment_sensing.needs_sensing: true
+- environment_sensing.sensing_type: "player_count|experience|materials"
 
 請返回以下 JSON 格式：
 

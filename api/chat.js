@@ -1,6 +1,9 @@
 // Vercel API 路由 - 處理 AI 聊天請求
 
-// 簡化版的 AI 處理器 - 直接在這裡實現核心邏輯
+// 導入多 AI 處理器
+const MultiAIProcessor = require('../multi-ai-processor.js');
+
+// 簡化版的 AI 處理器 - 直接在這裡實現核心邏輯（保留作為降級選項）
 class SimpleAIHandler {
     constructor() {
         this.environmentState = {
@@ -171,7 +174,8 @@ class SimpleAIHandler {
 }
 
 // 全局 AI 處理器實例
-let aiHandler = new SimpleAIHandler();
+let aiHandler = new SimpleAIHandler(); // 保留作為降級選項
+let multiAIHandler = new MultiAIProcessor(); // 新的多 AI 處理器
 
 // OpenAI API 調用函數
 async function callOpenAI(messages) {
@@ -238,10 +242,17 @@ module.exports = async function handler(req, res) {
             console.log(`📚 上下文信息: 歷史=${context.chatHistory?.length || 0}條, 會話=${context.sessionId}`);
         }
 
-        // 使用 AI 處理器處理消息（包含上下文）
-        const result = await aiHandler.processMessage(message, context, callOpenAI);
+        // 使用多 AI 處理器處理消息（Phase 2A）
+        let result;
+        try {
+            console.log(`🚀 使用多 AI 處理器 (Phase 2A)`);
+            result = await multiAIHandler.processMessage(message, context, callOpenAI);
+        } catch (error) {
+            console.warn(`⚠️ 多 AI 處理器失敗，降級到簡單處理器`, error);
+            result = await aiHandler.processMessage(message, context, callOpenAI);
+        }
 
-        console.log(`🎯 處理結果: 意圖=${result.intent}, 策略=${result.strategy}`);
+        console.log(`🎯 處理結果: 意圖=${result.intent}, 策略=${result.strategy}, 模式=${result.processingMode}`);
 
         const assistantMessage = result.response;
 
@@ -255,7 +266,9 @@ module.exports = async function handler(req, res) {
                 processingMode: result.processingMode || 'dual_stage',
                 contextUsed: result.contextUsed || false,
                 historyLength: result.historyLength || 0,
-                sessionId: context?.sessionId || 'no-session'
+                sessionId: context?.sessionId || 'no-session',
+                aiModules: result.aiModules || [],
+                contextAnalysis: result.contextAnalysis || null
             }
         });
 

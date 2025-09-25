@@ -237,9 +237,47 @@ class RuleBuddyApp {
             console.log('🎯 AI 處理結果:', JSON.stringify(data.debug, null, 2));
             console.log(`📋 意圖: ${data.debug.intent} | 策略: ${data.debug.strategy} | 模式: ${data.debug.processingMode}`);
 
+            // 顯示 AI 模組使用情況
+            if (data.debug.aiModules && data.debug.aiModules.length > 0) {
+                const moduleDisplay = data.debug.aiModules.length === 3 ?
+                    data.debug.aiModules.join(' → ') :
+                    data.debug.aiModules.join(' + ');
+                console.log(`🤖 AI 模組: ${moduleDisplay}`);
+
+                // 顯示處理模式
+                if (data.debug.processingMode === 'multi_ai_phase2b') {
+                    console.log(`🎉 Phase 2B: 完整三模組架構運行中`);
+                } else if (data.debug.processingMode === 'multi_ai_phase2a') {
+                    console.log(`🔧 Phase 2A: 增強版雙模組架構`);
+                } else if (data.debug.processingMode.includes('fallback')) {
+                    console.log(`⚠️ 降級模式: ${data.debug.processingMode}`);
+                }
+            }
+
             // 顯示上下文使用情況
             if (data.debug.contextUsed) {
                 console.log(`🔗 上下文: 已使用 ${data.debug.historyLength} 條歷史記錄`);
+
+                // 顯示上下文分析結果（如果有）
+                if (data.debug.contextAnalysis) {
+                    const analysis = data.debug.contextAnalysis;
+                    console.log(`🧠 上下文分析:`);
+                    console.log(`  - 連續性: ${analysis.continuity_analysis?.is_continuous ? '是' : '否'} (${analysis.continuity_analysis?.continuity_type})`);
+                    console.log(`  - 話題切換: ${analysis.topic_analysis?.topic_switch_detected ? '是' : '否'}`);
+                    console.log(`  - 相關歷史: ${analysis.context_relevance?.relevant_history?.length || 0} 條`);
+                }
+
+                // 顯示意圖檢測結果（Phase 2B）
+                if (data.debug.intentResult) {
+                    const intent = data.debug.intentResult;
+                    console.log(`🎯 意圖檢測:`);
+                    console.log(`  - 主要意圖: ${intent.intent?.primary_intent}`);
+                    console.log(`  - 信心度: ${intent.intent?.confidence}`);
+                    console.log(`  - 緊急程度: ${intent.urgency?.level}`);
+                    if (intent.environment_sensing?.needs_sensing) {
+                        console.log(`  - 需要環境感知: ${intent.environment_sensing.sensing_type}`);
+                    }
+                }
             } else {
                 console.log(`🔗 上下文: 無歷史記錄（首次對話）`);
             }

@@ -51,21 +51,37 @@ class DualStageProcessor {
         const currentEnv = this.environmentState.getEnvironmentSummary();
         const missingInfo = this.environmentState.getMissingInfo();
 
-        const stage1Prompt = `你是桌遊環境感知和意圖分析專家。分析用戶的意圖並感知桌遊現場環境。
+        const stage1Prompt = `你是桌遊意圖分析專家。精準分析用戶的真實意圖和當下狀況。
 
 用戶消息：「${userMessage}」
 
 當前已知環境：
 ${JSON.stringify(currentEnv, null, 2)}
 
-缺失的環境資訊：${missingInfo.join(', ')}
+🎯 分析重點：
+1. **真實意圖判斷** - 用戶現在真正想要什麼？
+2. **情境感知** - 這是閒聊、規則問題、還是想開始遊戲？
+3. **環境需求** - 回答這個問題是否真的需要環境資訊？
+
+📋 意圖類型說明：
+- **chitchat** - 純聊天（你好、謝謝等）
+- **rule_question** - 規則問題（可以直接回答，不需要環境資訊）
+- **start_game** - 想要開始遊戲（需要環境感知）
+- **game_action** - 遊戲中的行動（需要遊戲狀態）
+- **progress_control** - 流程控制（暫停、重來等）
 
 請分析並回傳 JSON 格式：
 {
   "intent": {
-    "type": "start_game|rule_question|game_action|progress_control|chitchat",
+    "type": "選擇最符合的意圖類型",
     "confidence": 0.95,
-    "description": "意圖描述"
+    "description": "具體描述用戶想要什麼"
+  },
+  "situation_analysis": {
+    "is_direct_question": true,
+    "needs_environment": false,
+    "can_answer_immediately": true,
+    "context": "用戶直接問規則，可以立即回答"
   },
   "environment_analysis": {
     "detected_info": {
@@ -73,18 +89,21 @@ ${JSON.stringify(currentEnv, null, 2)}
       "experience_level": null,
       "materials": null
     },
-    "missing_critical_info": ["player_count"],
-    "next_question_needed": true,
-    "priority_info": "player_count"
+    "missing_critical_info": [],
+    "next_question_needed": false,
+    "priority_info": null
   },
   "response_strategy": {
-    "approach": "environment_sensing|direct_answer|guided_action",
-    "focus": "建立連結並收集環境資訊",
-    "tone": "親切友善"
+    "approach": "direct_answer|environment_sensing|guided_action",
+    "focus": "根據意圖決定回應重點",
+    "tone": "自然友善"
   }
 }
 
-重要：如果是 start_game 意圖且缺少關鍵環境資訊，優先選擇 environment_sensing 策略。`;
+⚠️ 重要原則：
+- 如果是規則問題，選擇 direct_answer，不要強制收集環境
+- 如果是閒聊，選擇 direct_answer，自然回應
+- 只有明確想要「開始遊戲」時，才選擇 environment_sensing`;
 
         try {
             const stage1Response = await openaiApiCall([

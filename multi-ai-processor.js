@@ -42,6 +42,9 @@ class MultiAIProcessor {
                 openaiApiCall
             );
 
+            // 確保 chatHistory 被傳遞到 contextAnalysis 中
+            contextAnalysis.chatHistory = context?.chatHistory || [];
+
             // 第二階段：意圖檢測（加入遊戲狀態信息）
             const gamePhaseInfo = this.gameStateManager.getCurrentPhaseInfo();
             contextAnalysis.game_state = {

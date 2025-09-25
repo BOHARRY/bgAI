@@ -109,7 +109,7 @@ class ResponseGenerator {
         const contextBridge = this.buildContextBridge(contextAnalysis);
         const strategyGuidance = this.buildStrategyGuidance(intentResult);
         const similoKnowledge = this.buildSimiloKnowledge(intentResult, gamePhaseInfo);
-        const gameStateInfo = gamePhaseInfo ? this.buildGameStateInfo(gamePhaseInfo) : '';
+        const gameStateInfo = gamePhaseInfo ? this.buildGameStateInfo(gamePhaseInfo, contextAnalysis) : '';
         
         return `你是 Similo 專門 AI 陪玩員 🎭，專門協助玩家學習和遊玩 Similo 這款推理卡牌遊戲。你只專注於 Similo，不處理其他遊戲。根據分析結果生成自然的回應。
 
@@ -329,7 +329,7 @@ ${gameStateInfo}
     }
 
     // 構建遊戲狀態信息
-    buildGameStateInfo(gamePhaseInfo) {
+    buildGameStateInfo(gamePhaseInfo, contextAnalysis) {
         if (!gamePhaseInfo) return '';
 
         return `🎮 **當前遊戲狀態**：
@@ -338,10 +338,123 @@ ${gameStateInfo}
 - 當前角色：${gamePhaseInfo.currentRole || '所有玩家'}
 - 完成標準：${gamePhaseInfo.completionCheck}
 
+🧠 **已知信息記憶**：
+${this.buildMemoryContext(contextAnalysis)}
+
 ⚠️ **重要提醒**：
-- 只給出當前階段需要的指令
-- 等待用戶完成後再進入下一步
-- 保持簡潔，避免一次說太多`;
+- 🚫 不要重複詢問已知信息
+- ✅ 只給出當前階段需要的指令
+- ✅ 等待用戶完成後再進入下一步
+- ✅ 保持簡潔，避免一次說太多`;
+    }
+
+    // 構建記憶上下文 - 提取並傳遞關鍵信息
+    buildMemoryContext(contextAnalysis) {
+        const memory = {
+            playerCount: null,
+            experienceLevel: null,
+            selectedTheme: null,
+            gamePhase: null,
+            completedSteps: []
+        };
+
+        // 從上下文歷史中提取關鍵信息
+        if (contextAnalysis && contextAnalysis.chatHistory) {
+            const history = contextAnalysis.chatHistory;
+
+            for (let i = 0; i < history.length; i++) {
+                const message = history[i];
+                if (message.role === 'user') {
+                    const content = message.content.toLowerCase();
+
+                    // 提取人數信息
+                    if (!memory.playerCount) {
+                        const playerMatch = content.match(/(\d+).*人|三|四|五|六|七|八/);
+                        if (playerMatch) {
+                            if (playerMatch[1]) {
+                                memory.playerCount = parseInt(playerMatch[1]);
+                            } else if (content.includes('三')) {
+                                memory.playerCount = 3;
+                            } else if (content.includes('四')) {
+                                memory.playerCount = 4;
+                            } else if (content.includes('五')) {
+                                memory.playerCount = 5;
+                            } else if (content.includes('六')) {
+                                memory.playerCount = 6;
+                            } else if (content.includes('七')) {
+                                memory.playerCount = 7;
+                            } else if (content.includes('八')) {
+                                memory.playerCount = 8;
+                            }
+                        }
+                    }
+
+                    // 提取經驗信息
+                    if (!memory.experienceLevel) {
+                        if (content.includes('沒有') || content.includes('新手') || content.includes('第一次')) {
+                            memory.experienceLevel = '新手';
+                        } else if (content.includes('玩過') || content.includes('會玩') || content.includes('熟悉')) {
+                            memory.experienceLevel = '有經驗';
+                        }
+                    }
+
+                    // 提取主題選擇
+                    if (!memory.selectedTheme) {
+                        if (content.includes('神話') || content.includes('mythology')) {
+                            memory.selectedTheme = '神話';
+                        } else if (content.includes('人物') || content.includes('角色')) {
+                            memory.selectedTheme = '人物';
+                        } else if (content.includes('動物')) {
+                            memory.selectedTheme = '動物';
+                        } else if (content.includes('歷史')) {
+                            memory.selectedTheme = '歷史';
+                        }
+                    }
+
+                    // 提取完成步驟
+                    if (content.includes('排好了') || content.includes('完成了')) {
+                        if (!memory.completedSteps.includes('卡牌佈局')) {
+                            memory.completedSteps.push('卡牌佈局');
+                        }
+                    }
+                    if (content.includes('選好了')) {
+                        if (!memory.completedSteps.includes('秘密人物選擇')) {
+                            memory.completedSteps.push('秘密人物選擇');
+                        }
+                    }
+                    if (content.includes('準備好了')) {
+                        if (!memory.completedSteps.includes('手牌準備')) {
+                            memory.completedSteps.push('手牌準備');
+                        }
+                    }
+                }
+            }
+        }
+
+        // 構建記憶提示
+        let memoryText = '';
+
+        if (memory.playerCount) {
+            memoryText += `- 👥 玩家人數：${memory.playerCount}人 (已確認，不要再問)\n`;
+        }
+
+        if (memory.experienceLevel) {
+            memoryText += `- 🎯 經驗水平：${memory.experienceLevel} (已確認)\n`;
+        }
+
+        if (memory.selectedTheme) {
+            memoryText += `- 🎨 選擇主題：${memory.selectedTheme} (已確認)\n`;
+        }
+
+        if (memory.completedSteps.length > 0) {
+            memoryText += `- ✅ 已完成步驟：${memory.completedSteps.join('、')}\n`;
+        }
+
+        if (memoryText === '') {
+            memoryText = '- 📝 尚無已知信息，可以開始收集基本信息';
+        }
+
+        return memoryText;
     }
 
     // 後處理回應

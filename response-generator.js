@@ -41,17 +41,29 @@ class ResponseGenerator {
         try {
             const gameRulesPath = path.join(__dirname, 'book', 'Similo.md');
             const roleRulesPath = path.join(__dirname, 'book', 'SimiloRole.md');
+            const structuredRulesPath = path.join(__dirname, 'book', 'Similo-Structured.md');
 
             const gameRules = fs.readFileSync(gameRulesPath, 'utf8');
             const roleRules = fs.readFileSync(roleRulesPath, 'utf8');
 
+            // 優先使用結構化規則
+            let structuredRules = '';
+            try {
+                structuredRules = fs.readFileSync(structuredRulesPath, 'utf8');
+                console.log(`✅ ${this.name}: 成功載入結構化 Similo 規則文件`);
+            } catch (structuredError) {
+                console.warn(`⚠️ ${this.name}: 結構化規則文件不存在，使用原始規則`);
+            }
+
             console.log(`✅ ${this.name}: 成功載入 Similo 規則文件`);
             console.log(`  - 遊戲規則: ${gameRules.length} 字符`);
             console.log(`  - 角色規則: ${roleRules.length} 字符`);
+            console.log(`  - 結構化規則: ${structuredRules.length} 字符`);
 
             return {
                 gameRules: gameRules,
                 roleRules: roleRules,
+                structuredRules: structuredRules,
                 loaded: true
             };
         } catch (error) {
@@ -59,6 +71,7 @@ class ResponseGenerator {
             return {
                 gameRules: '',
                 roleRules: '',
+                structuredRules: '',
                 loaded: false
             };
         }

@@ -1,0 +1,25 @@
+{
+  "name": "rulebuddy-ai",
+  "version": "1.0.0",
+  "description": "AI 桌遊陪玩員 - 您的專屬桌遊助手",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "ai",
+    "boardgame",
+    "chatbot",
+    "openai",
+    "桌遊",
+    "規則助手"
+  ],
+  "author": "RuleBuddy.ai Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

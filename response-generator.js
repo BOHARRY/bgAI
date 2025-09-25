@@ -233,6 +233,15 @@ ${this.similoRules.roleRules}
 - ✅ 用戶已經知道這是什麼遊戲，直接開始即可`;
             }
 
+            if (intent === 'progress_control') {
+                return `🎮 流程控制 - 進入下一階段：
+- 🚫 不要重複詢問已知信息（人數、經驗等）
+- ✅ 直接進入下一個遊戲階段
+- ✅ 開始具體的遊戲設置步驟
+- ✅ 保持簡潔、實用的指導
+- ✅ 用戶已經準備好，直接開始遊戲流程`;
+            }
+
             return `🎭 Similo 專門知識：你擁有完整的 Similo 遊戲規則知識，包括遊戲狀態管理和角色規則。根據需要提供相關信息，但避免資訊轟炸。`;
         } else {
             // 降級到備用規則
@@ -259,6 +268,14 @@ ${this.similoRules.roleRules}
 - ✅ 直接進入遊戲設置流程
 - ✅ 簡潔說明下一步要做什麼
 - ✅ 保持實用、簡短的回應`;
+            }
+
+            if (intent === 'progress_control') {
+                return `🎮 流程控制 - 進入下一階段：
+- 🚫 不要重複詢問已知信息（人數、經驗等）
+- ✅ 直接進入下一個遊戲階段
+- ✅ 開始具體的遊戲設置步驟
+- ✅ 保持簡潔、實用的指導`;
             }
 
             return '根據具體情況提供必要的 Similo 知識，避免資訊轟炸。';
@@ -295,7 +312,7 @@ ${this.similoRules.roleRules}
             start_game: '太棒了！我來當你們的 Similo 陪玩員 🎉 在開始之前，先跟我說說：現在桌上有幾位玩家呢？',
             environment_info: '好的！現在讓我們直接開始設置遊戲吧！',
             game_action: '我明白你想進行 Similo 遊戲動作。讓我們一步步來處理...',
-            progress_control: '好的，讓我來幫你回顧一下當前的 Similo 遊戲狀況...'
+            progress_control: '太好了！讓我們開始下一步的遊戲設置吧！'
         };
         
         return fallbackResponses[intent] || fallbackResponses.chitchat;

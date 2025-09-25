@@ -97,14 +97,20 @@ ${contextSummary}
 - 「淘汰規則是什麼？」= **rule_question** （詢問具體規則）
 - 「我們有4個人」= **environment_info** （提供環境信息）
 
-⚠️ **關鍵判斷**：
-如果用戶想要「學習如何玩」或「開始遊戲」→ **start_game**
-如果用戶詢問「具體規則細節」→ **rule_question**
+⚠️ **上下文關鍵判斷**：
+- 如果對話剛開始，用戶想要「學習如何玩」→ **start_game**
+- 如果已經在設置流程中，用戶說「準備好了」「好的」「開始吧」→ **progress_control**
+- 如果用戶回答了 AI 的問題（人數、經驗等）→ **environment_info**
+- 如果用戶詢問「具體規則細節」→ **rule_question**
 
 🎮 **start_game 意圖的回應策略**：
 - approach: "environment_sensing" （必須進行環境感知）
 - environment_sensing.needs_sensing: true
 - environment_sensing.sensing_type: "player_count|experience|materials"
+
+🎯 **progress_control 意圖的回應策略**：
+- approach: "guided_action" （引導下一步行動）
+- 當用戶表示準備好時，進入下一個遊戲階段
 
 請返回以下 JSON 格式：
 

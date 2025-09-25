@@ -241,7 +241,8 @@ body::before {
     background: rgba(255, 255, 255, 0.15);
     margin-right: auto;
     text-align: left;
-    color: rgba(255, 255, 255, 0.9);
+    color: rgb(34 45 96 / 90%);
+    font-weight: 600;
 }
 
 .loading {

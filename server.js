@@ -18,7 +18,7 @@ try {
 }
 
 // 配置
-const PORT = process.env.PORT || 7777;
+const PORT = process.env.PORT || 8888;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'your-openai-api-key-here';
 
 // MIME 類型映射
@@ -74,10 +74,16 @@ const server = http.createServer(async (req, res) => {
     }
 });
 
+// 載入分層 AI 處理器
+const LayeredAIHandler = require('./layered-ai-handler');
+
+// 創建全局 AI 處理器實例
+const aiHandler = new LayeredAIHandler();
+
 // 處理聊天 API 請求
 async function handleChatAPI(req, res) {
     let body = '';
-    
+
     req.on('data', chunk => {
         body += chunk.toString();
     });
@@ -86,48 +92,39 @@ async function handleChatAPI(req, res) {
         try {
             const { message, history = [] } = JSON.parse(body);
 
-            // 構建發送給 OpenAI 的消息
-            const messages = [
-                {
-                    role: 'system',
-                    content: `你是 RuleBuddy.ai，一個專業的桌遊 AI 助手。你的任務是：
+            // 定義 OpenAI API 調用函數
+            const openaiApiCall = async (messages) => {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: messages,
+                        max_tokens: 1000,
+                        temperature: 0.7
+                    })
+                });
 
-1. 解釋桌遊規則 - 用清楚易懂的方式說明遊戲規則
-2. 回答遊戲問題 - 解決玩家在遊戲過程中的疑問
-3. 提供策略建議 - 分享遊戲技巧和策略
-4. 推薦桌遊 - 根據玩家喜好推薦適合的桌遊
-
-請用友善、專業且有趣的語調回答，並盡量提供具體實用的建議。如果遇到不確定的規則問題，請建議查閱官方規則書。`
-                },
-                ...history.slice(-10), // 只保留最近10條對話
-                {
-                    role: 'user',
-                    content: message
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`OpenAI API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
                 }
-            ];
 
-            // 發送請求到 OpenAI
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
-                    messages: messages,
-                    max_tokens: 1000,
-                    temperature: 0.7
-                })
-            });
+                const data = await response.json();
+                return data.choices[0].message.content;
+            };
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`OpenAI API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-            }
+            // 使用分層 AI 處理器處理消息（雙階段模式）
+            aiHandler.switchProcessingMode('dual_stage');
+            const result = await aiHandler.processMessage(message, openaiApiCall);
 
-            const data = await response.json();
-            const assistantMessage = data.choices[0].message.content;
+            console.log(`🎯 處理結果: 意圖=${result.intent}, 策略=${result.strategy}`);
+            console.log(`🎮 遊戲狀態: ${JSON.stringify(result.gameState)}`);
+
+            const assistantMessage = result.response;
 
             // 返回結果
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -174,9 +171,10 @@ async function serveStaticFile(req, res, pathname) {
 
 // 啟動服務器
 server.listen(PORT, () => {
-    console.log(`🚀 RuleBuddy.ai 服務器已啟動！`);
+    console.log(`🚀 Similo AI 陪玩員服務器已啟動！`);
     console.log(`📱 請在瀏覽器中打開: http://localhost:${PORT}`);
-    console.log(`🎲 準備好與 AI 桌遊助手對話了！`);
+    console.log(`🎭 準備好與 Similo AI 助手一起遊戲了！`);
+    console.log(`📚 已載入完整的 Similo 遊戲規則`);
 });
 
 // 優雅關閉

@@ -6,7 +6,7 @@ class OpenAIClient {
     }
 
     // 發送消息到本地 API
-    async sendMessage(message, systemPrompt = '', model = 'gpt-3.5-turbo') {
+    async sendMessage(message, systemPrompt = '', model = 'gpt-4o-mini') {
         try {
             // 發送 API 請求到本地服務器
             const response = await fetch(this.apiUrl, {
@@ -68,7 +68,7 @@ class OpenAIClient {
     }
 
     // 流式響應（未來可以實現）
-    async sendMessageStream(message, systemPrompt = '', model = 'gpt-3.5-turbo') {
+    async sendMessageStream(message, systemPrompt = '', model = 'gpt-4o-mini') {
         // TODO: 實現流式響應
         throw new Error('Stream mode not implemented yet');
     }

@@ -1,7 +1,7 @@
 {
-  "name": "rulebuddy-ai",
-  "version": "1.0.0",
-  "description": "AI 桌遊陪玩員 - 您的專屬桌遊助手",
+  "name": "similo-ai-companion",
+  "version": "1.0.0-mvp",
+  "description": "Similo AI 陪玩員 - 專業的 Similo 桌遊助手 MVP",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,13 +9,15 @@
   },
   "keywords": [
     "ai",
+    "similo",
     "boardgame",
     "chatbot",
     "openai",
     "桌遊",
-    "規則助手"
+    "推理遊戲",
+    "陪玩員"
   ],
-  "author": "RuleBuddy.ai Team",
+  "author": "Similo AI Team",
   "license": "MIT",
   "engines": {
     "node": ">=14.0.0"

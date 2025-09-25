@@ -1,20 +1,24 @@
 // Response Generator AI - 專門的回應生成模組
 const fs = require('fs');
 const path = require('path');
+const GameStateManager = require('./game-state-manager');
 
 class ResponseGenerator {
     constructor() {
         this.name = 'ResponseGenerator';
-        this.version = '1.0.0';
+        this.version = '2.0.0';
         this.specializations = [
-            'natural_response_generation',
-            'context_integration',
-            'similo_personality',
-            'conversation_flow_management'
+            'game_state_aware_generation',
+            'step_by_step_guidance',
+            'role_consistent_communication',
+            'similo_rule_accuracy'
         ];
 
         // 載入完整的 Similo 規則文件
         this.similoRules = this.loadSimiloRules();
+
+        // 初始化遊戲狀態管理器
+        this.gameStateManager = new GameStateManager();
 
         // Similo 規則快速參考（備用）
         this.similoRulesBackup = {
@@ -61,18 +65,18 @@ class ResponseGenerator {
     }
 
     // 主要生成方法
-    async generate(currentMessage, contextAnalysis, intentResult, openaiApiCall) {
+    async generate(currentMessage, contextAnalysis, intentResult, openaiApiCall, gamePhaseInfo = null) {
         try {
             console.log(`🎪 ${this.name}: 開始生成回應...`);
-            
-            const prompt = this.buildGenerationPrompt(currentMessage, contextAnalysis, intentResult);
+
+            const prompt = this.buildGenerationPrompt(currentMessage, contextAnalysis, intentResult, gamePhaseInfo);
             const response = await openaiApiCall([{
                 role: 'user',
                 content: prompt
             }]);
 
             const finalResponse = this.postProcessResponse(response.trim());
-            
+
             console.log(`✅ ${this.name}: 生成完成`, {
                 length: finalResponse.length,
                 intent: intentResult.intent?.primary_intent,
@@ -88,10 +92,11 @@ class ResponseGenerator {
     }
 
     // 構建生成 Prompt
-    buildGenerationPrompt(currentMessage, contextAnalysis, intentResult) {
+    buildGenerationPrompt(currentMessage, contextAnalysis, intentResult, gamePhaseInfo = null) {
         const contextBridge = this.buildContextBridge(contextAnalysis);
         const strategyGuidance = this.buildStrategyGuidance(intentResult);
-        const similoKnowledge = this.buildSimiloKnowledge(intentResult);
+        const similoKnowledge = this.buildSimiloKnowledge(intentResult, gamePhaseInfo);
+        const gameStateInfo = gamePhaseInfo ? this.buildGameStateInfo(gamePhaseInfo) : '';
         
         return `你是 Similo 專門 AI 陪玩員 🎭，專門協助玩家學習和遊玩 Similo 這款推理卡牌遊戲。你只專注於 Similo，不處理其他遊戲。根據分析結果生成自然的回應。
 
@@ -111,6 +116,8 @@ ${strategyGuidance}
 
 🎮 **Similo 知識庫**：
 ${similoKnowledge}
+
+${gameStateInfo}
 
 🎭 **Similo 專門 AI 陪玩員人格特質**：
 - **Similo 專家** - 只專注於 Similo，對這款遊戲瞭若指掌
@@ -193,93 +200,135 @@ ${similoKnowledge}
         return guidance;
     }
 
-    // 構建 Similo 知識庫 (使用完整規則文件)
-    buildSimiloKnowledge(intentResult) {
+    // 構建遊戲狀態感知的 Similo 知識庫
+    buildSimiloKnowledge(intentResult, gamePhaseInfo = null) {
         const intent = intentResult.intent?.primary_intent;
 
-        // 如果成功載入了規則文件，提供完整的知識庫
-        if (this.similoRules.loaded) {
-            if (intent === 'rule_question') {
-                return `🎯 Similo 完整規則知識庫：
+        // 獲取當前遊戲階段信息
+        const currentPhase = gamePhaseInfo || this.gameStateManager.getCurrentPhaseInfo();
 
-=== 遊戲狀態與操作手冊 ===
-${this.similoRules.gameRules}
-
-=== 角色規則說明 ===
-${this.similoRules.roleRules}
-
-回答指導：
-- 根據用戶具體問題，從上述規則中提取相關信息
-- 保持簡潔明確，不要一次性提供所有規則
-- 可以詢問是否需要了解其他部分`;
-            }
-
-            if (intent === 'start_game') {
-                return `🎮 開始遊戲引導原則：
-- 🚫 不要介紹遊戲背景或詳細規則
-- ✅ 用戶已經買了桌遊，直接引導遊玩即可
-- ✅ 簡潔詢問環境信息（人數、經驗）
-- ✅ 立即進入遊戲設置流程
-- ✅ 保持簡短、實用的回應
-- ✅ 一步一步引導，不要一次說太多`;
-            }
-
-            if (intent === 'environment_info') {
-                return `🎯 環境信息收集完成，立即進入遊戲設置：
-- 🚫 不要介紹遊戲背景或歡迎詞
-- ✅ 直接進入遊戲設置流程
-- ✅ 簡潔說明下一步要做什麼
-- ✅ 保持實用、簡短的回應
-- ✅ 用戶已經知道這是什麼遊戲，直接開始即可`;
-            }
-
-            if (intent === 'progress_control') {
-                return `🎮 流程控制 - 進入下一階段：
-- 🚫 不要重複詢問已知信息（人數、經驗等）
-- ✅ 直接進入下一個遊戲階段
-- ✅ 開始具體的遊戲設置步驟
-- ✅ 保持簡潔、實用的指導
-- ✅ 用戶已經準備好，直接開始遊戲流程`;
-            }
-
-            return `🎭 Similo 專門知識：你擁有完整的 Similo 遊戲規則知識，包括遊戲狀態管理和角色規則。根據需要提供相關信息，但避免資訊轟炸。`;
-        } else {
-            // 降級到備用規則
-            if (intent === 'rule_question') {
-                return `🎯 回答規則問題時：
-- 只回答用戶具體問的問題
-- 不要主動提供其他規則
-- 保持簡潔明確
-- 可以詢問是否需要了解其他部分`;
-            }
-
-            if (intent === 'start_game') {
-                return `🎮 開始遊戲引導原則：
-- 🚫 不要介紹遊戲背景或詳細規則
-- ✅ 用戶已經買了桌遊，直接引導遊玩即可
-- ✅ 簡潔詢問環境信息（人數、經驗）
-- ✅ 立即進入遊戲設置流程
-- ✅ 保持簡短、實用的回應`;
-            }
-
-            if (intent === 'environment_info') {
-                return `🎯 環境信息收集完成，立即進入遊戲設置：
-- 🚫 不要介紹遊戲背景或歡迎詞
-- ✅ 直接進入遊戲設置流程
-- ✅ 簡潔說明下一步要做什麼
-- ✅ 保持實用、簡短的回應`;
-            }
-
-            if (intent === 'progress_control') {
-                return `🎮 流程控制 - 進入下一階段：
-- 🚫 不要重複詢問已知信息（人數、經驗等）
-- ✅ 直接進入下一個遊戲階段
-- ✅ 開始具體的遊戲設置步驟
-- ✅ 保持簡潔、實用的指導`;
-            }
-
-            return '根據具體情況提供必要的 Similo 知識，避免資訊轟炸。';
+        // 根據意圖和遊戲階段提供精確指導
+        if (intent === 'start_game') {
+            return this.getStartGameGuidance();
         }
+
+        if (intent === 'step_completion') {
+            return this.getStepCompletionGuidance(currentPhase);
+        }
+
+        if (intent === 'game_state_query') {
+            return this.getGameStateGuidance(currentPhase);
+        }
+
+        if (intent === 'rule_clarification') {
+            return this.getRuleClarificationGuidance(currentPhase);
+        }
+
+        if (intent === 'environment_info') {
+            return this.getEnvironmentInfoGuidance(currentPhase);
+        }
+
+        if (intent === 'error_recovery') {
+            return this.getErrorRecoveryGuidance(currentPhase);
+        }
+
+        // 默認指導
+        return this.getDefaultGuidance(currentPhase);
+    }
+
+    // 開始遊戲指導
+    getStartGameGuidance() {
+        return `🎮 Similo 遊戲開始指導：
+- 🎯 目標：一步一步引導玩家完成遊戲設置
+- 📋 流程：人數確認 → 卡牌佈局 → 角色選擇 → 開始遊戲
+- ✅ 原則：每次只給一個明確指令，等待確認後再繼續
+- 🚫 避免：長篇規則解釋、一次性說太多步驟
+
+角色術語統一：
+- 出題者 (Clue Giver)：選擇秘密人物並給線索
+- 猜題者 (Guesser)：根據線索淘汰卡牌`;
+    }
+
+    // 步驟完成指導
+    getStepCompletionGuidance(phaseInfo) {
+        return `🎯 步驟完成處理 - 當前階段：${phaseInfo.phaseName}
+- ✅ 確認用戶已完成：${phaseInfo.description}
+- 🎮 下一步指令：${phaseInfo.instruction}
+- 🚫 不要重複已完成的步驟
+- ✅ 直接進入下一階段的具體指導
+
+回應模式：簡短確認 + 下一步明確指令`;
+    }
+
+    // 遊戲狀態查詢指導
+    getGameStateGuidance(phaseInfo) {
+        return `📋 遊戲狀態回答 - 當前階段：${phaseInfo.phaseName}
+- 🎯 當前任務：${phaseInfo.instruction}
+- 👤 當前角色：${phaseInfo.currentRole || '所有玩家'}
+- ✅ 完成標準：${phaseInfo.completionCheck}
+- 📝 回應要點：簡潔說明當前該做什麼，不要重複歷史`;
+    }
+
+    // 規則澄清指導
+    getRuleClarificationGuidance(phaseInfo) {
+        return `🎯 規則澄清回答：
+- ✅ 只回答用戶具體問的問題
+- 📋 提供準確的 Similo 規則信息
+- 🚫 不要擴展到其他規則
+- ✅ 回答後詢問是否可以繼續當前步驟
+
+重要規則要點：
+- 直放 = 相似，橫放 = 不相似
+- 12張卡排成4×3方陣
+- 每回合淘汰數量遞增（1,2,3,4,5張）`;
+    }
+
+    // 環境信息指導
+    getEnvironmentInfoGuidance(phaseInfo) {
+        return `🎯 環境信息處理：
+- ✅ 記錄用戶提供的信息（人數、經驗等）
+- 🎮 立即進入下一設置步驟
+- 🚫 不要重複詢問已知信息
+- ✅ 根據人數調整指導內容
+
+當前階段：${phaseInfo.phaseName}
+下一步：${phaseInfo.instruction}`;
+    }
+
+    // 錯誤恢復指導
+    getErrorRecoveryGuidance(phaseInfo) {
+        return `🔄 錯誤恢復處理：
+- ✅ 理解用戶想要重來或修正
+- 📋 提供當前階段的重新指導
+- 🎯 確認用戶想要回到哪一步
+- ✅ 重新給出清晰的指令
+
+當前可以重做的步驟：${phaseInfo.instruction}`;
+    }
+
+    // 默認指導
+    getDefaultGuidance(phaseInfo) {
+        return `🎭 Similo 專門陪玩指導：
+- 🎯 當前階段：${phaseInfo.phaseName}
+- 📋 當前任務：${phaseInfo.instruction}
+- ✅ 保持角色術語一致：出題者、猜題者
+- 🚫 避免資訊轟炸，一步一步來`;
+    }
+
+    // 構建遊戲狀態信息
+    buildGameStateInfo(gamePhaseInfo) {
+        if (!gamePhaseInfo) return '';
+
+        return `🎮 **當前遊戲狀態**：
+- 階段：${gamePhaseInfo.phaseName}
+- 當前任務：${gamePhaseInfo.instruction}
+- 當前角色：${gamePhaseInfo.currentRole || '所有玩家'}
+- 完成標準：${gamePhaseInfo.completionCheck}
+
+⚠️ **重要提醒**：
+- 只給出當前階段需要的指令
+- 等待用戶完成後再進入下一步
+- 保持簡潔，避免一次說太多`;
     }
 
     // 後處理回應
@@ -308,10 +357,13 @@ ${this.similoRules.roleRules}
         
         const fallbackResponses = {
             chitchat: '你好！我是 Similo 專門 AI 陪玩員 🎭 很高興和你聊天！想要學習 Similo 這款推理遊戲嗎？',
-            rule_question: '這是個好問題！讓我來解釋一下 Similo 的規則...',
+            rule_clarification: '這是個好問題！讓我來解釋一下 Similo 的規則...',
             start_game: '太棒了！我來當你們的 Similo 陪玩員 🎉 在開始之前，先跟我說說：現在桌上有幾位玩家呢？',
+            step_completion: '太好了！讓我們繼續下一步...',
+            game_state_query: '讓我告訴你現在該做什麼...',
             environment_info: '好的！現在讓我們直接開始設置遊戲吧！',
             game_action: '我明白你想進行 Similo 遊戲動作。讓我們一步步來處理...',
+            error_recovery: '沒問題！讓我們重新來過...',
             progress_control: '太好了！讓我們開始下一步的遊戲設置吧！'
         };
         

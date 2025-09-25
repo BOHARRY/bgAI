@@ -2,6 +2,7 @@
 const ContextAnalyzer = require('./context-analyzer.js');
 const IntentDetector = require('./intent-detector.js');
 const ResponseGenerator = require('./response-generator.js');
+const GameStateManager = require('./game-state-manager.js');
 
 class MultiAIProcessor {
     constructor() {
@@ -13,7 +14,10 @@ class MultiAIProcessor {
         this.contextAnalyzer = new ContextAnalyzer();
         this.intentDetector = new IntentDetector();
         this.responseGenerator = new ResponseGenerator();
-        
+
+        // 初始化遊戲狀態管理器
+        this.gameStateManager = new GameStateManager();
+
         // 環境狀態（簡化版）
         this.environmentState = {
             playerCount: null,
@@ -38,19 +42,34 @@ class MultiAIProcessor {
                 openaiApiCall
             );
 
-            // 第二階段：意圖檢測
+            // 第二階段：意圖檢測（加入遊戲狀態信息）
+            const gamePhaseInfo = this.gameStateManager.getCurrentPhaseInfo();
+            contextAnalysis.game_state = {
+                phase: gamePhaseInfo.phase,
+                current_role: gamePhaseInfo.currentRole,
+                phase_name: gamePhaseInfo.phaseName
+            };
+
             const intentResult = await this.intentDetector.detect(
                 userMessage,
                 contextAnalysis,
                 openaiApiCall
             );
 
-            // 第三階段：回應生成
+            // 檢查是否需要推進遊戲狀態
+            if (this.gameStateManager.canAdvancePhase(userMessage, contextAnalysis)) {
+                const completionData = this.extractCompletionData(userMessage, intentResult);
+                this.gameStateManager.advanceToNextPhase(completionData);
+            }
+
+            // 第三階段：回應生成（加入遊戲狀態信息）
+            const updatedGamePhaseInfo = this.gameStateManager.getCurrentPhaseInfo();
             const response = await this.responseGenerator.generate(
                 userMessage,
                 contextAnalysis,
                 intentResult,
-                openaiApiCall
+                openaiApiCall,
+                updatedGamePhaseInfo
             );
 
             return {
@@ -60,9 +79,10 @@ class MultiAIProcessor {
                 processingMode: 'multi_ai_phase2b',
                 contextAnalysis: contextAnalysis,
                 intentResult: intentResult,
+                gameState: this.gameStateManager.getGameStateSummary(),
                 contextUsed: true,
                 historyLength: context?.chatHistory?.length || 0,
-                aiModules: ['ContextAnalyzer', 'IntentDetector', 'ResponseGenerator']
+                aiModules: ['ContextAnalyzer', 'IntentDetector', 'ResponseGenerator', 'GameStateManager']
             };
 
         } catch (error) {
@@ -71,6 +91,34 @@ class MultiAIProcessor {
             // 降級處理
             return await this.fallbackProcessing(userMessage, context, openaiApiCall, error);
         }
+    }
+
+    // 提取完成數據
+    extractCompletionData(userMessage, intentResult) {
+        const data = {};
+
+        // 提取人數信息
+        const playerCountMatch = userMessage.match(/(\d+).*人|三|四|五/);
+        if (playerCountMatch) {
+            if (playerCountMatch[1]) {
+                data.playerCount = parseInt(playerCountMatch[1]);
+            } else if (userMessage.includes('三')) {
+                data.playerCount = 3;
+            } else if (userMessage.includes('四')) {
+                data.playerCount = 4;
+            } else if (userMessage.includes('五')) {
+                data.playerCount = 5;
+            }
+        }
+
+        // 提取經驗信息
+        if (userMessage.includes('沒有') || userMessage.includes('新手') || userMessage.includes('第一次')) {
+            data.experienceLevel = 'beginner';
+        } else if (userMessage.includes('玩過') || userMessage.includes('會玩')) {
+            data.experienceLevel = 'experienced';
+        }
+
+        return data;
     }
 
     // 降級處理 (Phase 2B)

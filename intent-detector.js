@@ -83,34 +83,41 @@ ${contextSummary}
 - **chitchat** - 純聊天、問候、感謝
 - **rule_question** - 詢問具體規則細節（如「線索卡怎麼放？」「怎麼淘汰？」）
 - **start_game** - 想要學習並開始遊戲（如「教我玩」「怎麼玩」「可以開始嗎」）
-- **game_action** - 遊戲中的具體行動
+- **game_state_query** - 詢問當前遊戲狀態（如「現在該做什麼？」「下一步是什麼？」）
+- **step_completion** - 完成當前步驟（如「完成了」「選好了」「排好了」）
+- **game_action** - 遊戲中的具體行動（如「我選這張」「淘汰這個」）
 - **progress_control** - 流程控制（暫停、重來、繼續）
-- **delayed_response** - 延遲回應（回答之前的問題）
+- **rule_clarification** - 規則澄清（如「直放是什麼意思？」「相似怎麼判斷？」）
+- **error_recovery** - 錯誤恢復（如「我搞錯了」「重來」「回到上一步」）
 - **environment_info** - 提供環境信息（玩家人數、經驗等）
 
-🎯 **重要區分**：
+🎯 **遊戲狀態感知區分**：
 - 「你可以教我怎麼玩嗎？」= **start_game** （想要學習並開始）
-- 「怎麼玩？」= **start_game** （想要學習並開始）
-- 「可以開始嗎？」= **start_game** （想要學習並開始）
-- 「教我玩」= **start_game** （想要學習並開始）
-- 「線索卡要怎麼放？」= **rule_question** （詢問具體規則）
-- 「淘汰規則是什麼？」= **rule_question** （詢問具體規則）
+- 「現在該做什麼？」= **game_state_query** （詢問當前狀態）
+- 「完成了」「選好了」「排好了」= **step_completion** （完成當前步驟）
+- 「線索卡要怎麼放？」= **rule_clarification** （規則澄清）
+- 「我搞錯了」「重來」= **error_recovery** （錯誤恢復）
 - 「我們有4個人」= **environment_info** （提供環境信息）
 
 ⚠️ **上下文關鍵判斷**：
 - 如果對話剛開始，用戶想要「學習如何玩」→ **start_game**
-- 如果已經在設置流程中，用戶說「準備好了」「好的」「開始吧」→ **progress_control**
+- 如果在遊戲進行中，用戶說「完成了」「好了」→ **step_completion**
+- 如果用戶詢問「現在做什麼」→ **game_state_query**
 - 如果用戶回答了 AI 的問題（人數、經驗等）→ **environment_info**
-- 如果用戶詢問「具體規則細節」→ **rule_question**
+- 如果用戶詢問「具體規則細節」→ **rule_clarification**
 
-🎮 **start_game 意圖的回應策略**：
-- approach: "environment_sensing" （必須進行環境感知）
-- environment_sensing.needs_sensing: true
-- environment_sensing.sensing_type: "player_count|experience|materials"
+🎮 **遊戲階段感知**：
+根據上下文分析中的遊戲階段信息，判斷用戶意圖：
+- 設置階段：step_completion, environment_info, rule_clarification
+- 遊戲進行階段：game_action, step_completion, rule_clarification
+- 任何階段：game_state_query, error_recovery
 
-🎯 **progress_control 意圖的回應策略**：
-- approach: "guided_action" （引導下一步行動）
-- 當用戶表示準備好時，進入下一個遊戲階段
+🎯 **回應策略映射**：
+- **start_game** → approach: "environment_sensing"
+- **step_completion** → approach: "guided_action"
+- **game_state_query** → approach: "direct_answer"
+- **rule_clarification** → approach: "direct_answer"
+- **error_recovery** → approach: "context_bridge"
 
 請返回以下 JSON 格式：
 
@@ -154,11 +161,23 @@ ${contextSummary}
         const topic = contextAnalysis.topic_analysis;
         if (topic) {
             summary += `話題切換: ${topic.topic_switch_detected ? '是' : '否'}\n`;
+            summary += `當前話題: ${topic.current_topic || '未知'}\n`;
+        }
+
+        const conversationState = contextAnalysis.conversation_state;
+        if (conversationState) {
+            summary += `對話階段: ${conversationState.current_phase || '未知'}\n`;
         }
 
         const keyInfo = contextAnalysis.context_relevance?.key_information;
         if (keyInfo?.pending_question) {
             summary += `未回答問題: ${keyInfo.pending_question}\n`;
+        }
+
+        // 新增：遊戲狀態信息
+        if (contextAnalysis.game_state) {
+            summary += `遊戲階段: ${contextAnalysis.game_state.phase || '未開始'}\n`;
+            summary += `當前角色: ${contextAnalysis.game_state.current_role || '無'}\n`;
         }
 
         return summary || '（上下文分析為空）';

@@ -1,7 +1,6 @@
 // 主應用程式
 class RuleBuddyApp {
     constructor() {
-        this.openaiClient = new OpenAIClient(CONFIG.API_URL);
         this.isLoading = false;
         this.init();
     }
@@ -72,8 +71,8 @@ class RuleBuddyApp {
             // 顯示載入中
             const loadingMessageId = this.addMessage('assistant', '<div class="loading"></div>');
             
-            // 發送到 OpenAI
-            const response = await this.openaiClient.sendMessage(query, CONFIG.SYSTEM_PROMPT, CONFIG.MODEL);
+            // 發送到 Vercel API
+            const response = await this.sendToAPI(query);
             
             // 移除載入中消息
             this.removeMessage(loadingMessageId);
@@ -170,12 +169,44 @@ class RuleBuddyApp {
         }, 150);
     }
 
+    // 發送消息到 Vercel API
+    async sendToAPI(message) {
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'API 調用失敗');
+            }
+
+            console.log('🎯 AI 處理結果:', data.debug);
+            return data.message;
+
+        } catch (error) {
+            console.error('API 調用錯誤:', error);
+            throw new Error(`無法連接到 AI 服務: ${error.message}`);
+        }
+    }
+
     // 清除聊天記錄
     clearChat() {
         const chatContainer = document.getElementById('chatContainer');
         chatContainer.innerHTML = '';
         chatContainer.classList.remove('active');
-        this.openaiClient.clearHistory();
+        // 清除聊天歷史（前端狀態重置）
     }
 }
 

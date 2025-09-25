@@ -10,25 +10,37 @@ class SimpleAIHandler {
         };
     }
 
-    async processMessage(userMessage, openaiApiCall) {
-        // 第一階段：意圖分析
-        const intentAnalysis = await this.analyzeIntent(userMessage, openaiApiCall);
+    async processMessage(userMessage, context, openaiApiCall) {
+        // 第一階段：意圖分析（包含上下文）
+        const intentAnalysis = await this.analyzeIntent(userMessage, context, openaiApiCall);
 
-        // 第二階段：回應生成
-        const response = await this.generateResponse(userMessage, intentAnalysis, openaiApiCall);
+        // 第二階段：回應生成（包含上下文）
+        const response = await this.generateResponse(userMessage, intentAnalysis, context, openaiApiCall);
 
         return {
             intent: intentAnalysis.intent.type,
             strategy: intentAnalysis.response_strategy.approach,
             response: response,
-            processingMode: 'dual_stage'
+            processingMode: 'dual_stage',
+            contextUsed: context ? true : false,
+            historyLength: context?.chatHistory?.length || 0
         };
     }
 
-    async analyzeIntent(userMessage, openaiApiCall) {
+    async analyzeIntent(userMessage, context, openaiApiCall) {
+        // 構建上下文信息
+        let contextInfo = '';
+        if (context && context.chatHistory && context.chatHistory.length > 0) {
+            contextInfo = `\n\n📚 **對話上下文**：\n`;
+            context.chatHistory.forEach((msg, index) => {
+                contextInfo += `${index + 1}. ${msg.role === 'user' ? '用戶' : 'AI'}: ${msg.content}\n`;
+            });
+            contextInfo += `\n當前是第 ${context.chatHistory.length + 1} 輪對話。`;
+        }
+
         const stage1Prompt = `你是桌遊意圖分析專家。精準分析用戶的真實意圖和當下狀況。
 
-用戶消息：「${userMessage}」
+用戶消息：「${userMessage}」${contextInfo}
 
 🎯 分析重點：
 1. **真實意圖判斷** - 用戶現在真正想要什麼？
@@ -76,11 +88,31 @@ class SimpleAIHandler {
         return JSON.parse(result);
     }
 
-    async generateResponse(userMessage, intentAnalysis, openaiApiCall) {
+    async generateResponse(userMessage, intentAnalysis, context, openaiApiCall) {
+        // 構建上下文信息
+        let contextInfo = '';
+        if (context && context.chatHistory && context.chatHistory.length > 0) {
+            contextInfo = `\n\n📚 **對話歷史**：\n`;
+            context.chatHistory.forEach((msg, index) => {
+                contextInfo += `${index + 1}. ${msg.role === 'user' ? '用戶' : 'AI'}: ${msg.content}\n`;
+            });
+
+            // 分析對話連續性
+            const lastAIMessage = context.chatHistory.filter(msg => msg.role === 'assistant').pop();
+            if (lastAIMessage) {
+                contextInfo += `\n🔗 **上下文分析**：上一次 AI 回應是「${lastAIMessage.content.substring(0, 50)}...」`;
+
+                // 檢測是否是連續對話
+                if (this.isDirectResponse(userMessage, lastAIMessage.content)) {
+                    contextInfo += `\n✅ 這似乎是對上一個問題的直接回應，請保持對話連續性。`;
+                }
+            }
+        }
+
         const stage2Prompt = `你是 Similo AI 陪玩員。根據意圖分析結果生成回應。
 
 用戶消息：「${userMessage}」
-意圖分析：${JSON.stringify(intentAnalysis, null, 2)}
+意圖分析：${JSON.stringify(intentAnalysis, null, 2)}${contextInfo}
 
 你是陪玩引導員，不是遊戲參與者。你的職責是：
 - 引導玩家設置遊戲
@@ -112,6 +144,29 @@ class SimpleAIHandler {
         ];
 
         return await openaiApiCall(messages);
+    }
+
+    // 檢測是否是對上一個問題的直接回應
+    isDirectResponse(userMessage, lastAIMessage) {
+        const userMsg = userMessage.toLowerCase();
+        const aiMsg = lastAIMessage.toLowerCase();
+
+        // 檢測數字回應（如：「3個人」回應「幾位玩家」）
+        if (/\d+/.test(userMsg) && (aiMsg.includes('幾') || aiMsg.includes('多少'))) {
+            return true;
+        }
+
+        // 檢測確認回應（如：「好的」「是的」）
+        if (['好的', '是的', '對', '沒錯', '可以', '行'].some(word => userMsg.includes(word))) {
+            return true;
+        }
+
+        // 檢測角色選擇回應（如：「我當出題者」）
+        if (userMsg.includes('我當') || userMsg.includes('我來')) {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -169,7 +224,7 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        const { message } = req.body;
+        const { message, context } = req.body;
 
         if (!message) {
             res.status(400).json({ error: 'Message is required' });
@@ -178,8 +233,13 @@ module.exports = async function handler(req, res) {
 
         console.log(`🎭 收到用戶消息: "${message}"`);
 
-        // 使用 AI 處理器處理消息
-        const result = await aiHandler.processMessage(message, callOpenAI);
+        // 記錄上下文信息
+        if (context) {
+            console.log(`📚 上下文信息: 歷史=${context.chatHistory?.length || 0}條, 會話=${context.sessionId}`);
+        }
+
+        // 使用 AI 處理器處理消息（包含上下文）
+        const result = await aiHandler.processMessage(message, context, callOpenAI);
 
         console.log(`🎯 處理結果: 意圖=${result.intent}, 策略=${result.strategy}`);
 
@@ -192,7 +252,10 @@ module.exports = async function handler(req, res) {
             debug: {
                 intent: result.intent,
                 strategy: result.strategy,
-                processingMode: result.processingMode || 'dual_stage'
+                processingMode: result.processingMode || 'dual_stage',
+                contextUsed: result.contextUsed || false,
+                historyLength: result.historyLength || 0,
+                sessionId: context?.sessionId || 'no-session'
             }
         });
 

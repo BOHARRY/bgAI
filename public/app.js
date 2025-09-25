@@ -169,16 +169,58 @@ class RuleBuddyApp {
         }, 150);
     }
 
+    // 提取聊天歷史
+    extractChatHistory() {
+        const messages = [];
+        const chatContainer = document.getElementById('chatContainer');
+        const messageElements = chatContainer.querySelectorAll('.message');
+
+        messageElements.forEach(element => {
+            const role = element.classList.contains('user') ? 'user' : 'assistant';
+            const content = element.textContent.trim();
+
+            // 過濾掉載入中的消息和空消息
+            if (content && !content.includes('loading') && content !== '') {
+                messages.push({ role, content });
+            }
+        });
+
+        // 返回最近的對話記錄（限制數量避免 token 過多）
+        return messages.slice(-8); // 最近8條對話
+    }
+
+    // 生成會話 ID（簡單實現）
+    getSessionId() {
+        if (!this.sessionId) {
+            this.sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        return this.sessionId;
+    }
+
     // 發送消息到 Vercel API
     async sendToAPI(message) {
         try {
+            // 提取當前聊天歷史
+            const chatHistory = this.extractChatHistory();
+
+            console.log('📚 發送上下文:', {
+                currentMessage: message,
+                historyLength: chatHistory.length,
+                sessionId: this.getSessionId()
+            });
+
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: message
+                    message: message,
+                    context: {
+                        chatHistory: chatHistory,
+                        timestamp: Date.now(),
+                        sessionId: this.getSessionId()
+                    }
                 })
             });
 
@@ -194,6 +236,14 @@ class RuleBuddyApp {
 
             console.log('🎯 AI 處理結果:', JSON.stringify(data.debug, null, 2));
             console.log(`📋 意圖: ${data.debug.intent} | 策略: ${data.debug.strategy} | 模式: ${data.debug.processingMode}`);
+
+            // 顯示上下文使用情況
+            if (data.debug.contextUsed) {
+                console.log(`🔗 上下文: 已使用 ${data.debug.historyLength} 條歷史記錄`);
+            } else {
+                console.log(`🔗 上下文: 無歷史記錄（首次對話）`);
+            }
+
             return data.message;
 
         } catch (error) {

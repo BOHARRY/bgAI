@@ -72,9 +72,8 @@ class RuleBuddyApp {
             // 顯示載入中
             const loadingMessageId = this.addMessage('assistant', '<div class="loading"></div>');
             
-            // 模擬 AI 回應（測試用）
-            await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬延遲
-            const response = `您好！我是 RuleBuddy.ai 🎲\n\n關於「${query}」，這是一個很棒的桌遊問題！\n\n雖然我目前還在連接 OpenAI API，但我已經準備好為您提供最佳的桌遊體驗了！\n\n請稍後再試，或者您可以繼續問我其他桌遊問題。`;
+            // 發送到 OpenAI
+            const response = await this.openaiClient.sendMessage(query, CONFIG.SYSTEM_PROMPT, CONFIG.MODEL);
             
             // 移除載入中消息
             this.removeMessage(loadingMessageId);

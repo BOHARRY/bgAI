@@ -17,7 +17,7 @@ try {
     console.log('📝 未找到 .env 文件，請參考 .env.example 創建配置文件');
 }
 
-const PORT = process.env.PORT || 7777;
+const PORT = process.env.PORT || 3456;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'your-openai-api-key-here';
 
 const mimeTypes = {
@@ -39,7 +39,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     const parsedUrl = url.parse(req.url, true);
-    const pathname = parsedUrl.pathname;
+    let pathname = parsedUrl.pathname;
 
     try {
         if (pathname === '/api/chat' && req.method === 'POST') {

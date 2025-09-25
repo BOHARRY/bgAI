@@ -67,7 +67,7 @@ class IntentDetector {
     buildDetectionPrompt(currentMessage, contextAnalysis) {
         const contextSummary = this.summarizeContextAnalysis(contextAnalysis);
 
-        return `你是專業的意圖檢測專家，專門分析用戶在桌遊情境中的真實意圖。
+        return `你是 Similo 專門 AI 陪玩員的意圖檢測專家，專門分析用戶在 Similo 推理卡牌遊戲情境中的真實意圖。你只處理 Similo 相關內容。
 
 📝 **用戶消息**：「${currentMessage}」
 

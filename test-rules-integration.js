@@ -1,4 +1,4 @@
-// 測試修復效果
+// 測試規則文件整合效果
 const MultiAIProcessor = require('./multi-ai-processor.js');
 
 // 模擬 OpenAI API 調用
@@ -26,12 +26,12 @@ function mockOpenAICall(messages) {
                 "current_phase": "initial"
             }
         }`);
-    } else if (prompt.includes('意圖檢測專家')) {
+    } else if (prompt.includes('Similo 專門 AI 陪玩員的意圖檢測專家')) {
         return Promise.resolve(`{
             "intent": {
                 "primary_intent": "start_game",
                 "confidence": 0.95,
-                "description": "用戶想要學習並開始遊戲"
+                "description": "用戶想要學習並開始 Similo 遊戲"
             },
             "urgency": {
                 "level": "normal",
@@ -47,16 +47,16 @@ function mockOpenAICall(messages) {
                 "sensing_type": "player_count"
             }
         }`);
-    } else if (prompt.includes('Similo AI 陪玩員')) {
-        // 這裡應該生成正確的引導式回應，而不是百科全書式
-        return Promise.resolve('太棒了！我來當你們的陪玩員 🎉 在開始之前，先跟我說說：現在桌上有幾位玩家呢？');
+    } else if (prompt.includes('Similo 專門 AI 陪玩員') && prompt.includes('完整規則知識庫')) {
+        // 這裡應該生成包含 Similo 專門知識的回應
+        return Promise.resolve('太棒了！我是 Similo 專門 AI 陪玩員 🎭 我來協助你們學習這款推理卡牌遊戲！在開始之前，先跟我說說：現在桌上有幾位玩家呢？');
+    } else {
+        return Promise.resolve('我是 Similo 專門 AI 陪玩員，很高興為你服務！');
     }
-    
-    return Promise.resolve('模擬回應');
 }
 
-async function testFix() {
-    console.log('🧪 測試修復效果\n');
+async function testRulesIntegration() {
+    console.log('🧪 測試規則文件整合效果\n');
     
     const processor = new MultiAIProcessor();
     
@@ -74,24 +74,39 @@ async function testFix() {
         console.log(`🤖 處理模式: ${result.processingMode}`);
         console.log(`🔧 AI 模組: ${result.aiModules?.join(' → ')}`);
         
-        // 檢查回應是否符合預期
+        // 檢查回應是否體現了 Similo 專門性
         const response = result.response;
-        const isGoodResponse =
+        const hasSimiloSpecialty = 
+            response.includes('Similo') && // 明確提到 Similo
             !response.includes('你想了解哪一款遊戲') && // 不問其他遊戲
             !response.includes('請告訴我你想了解哪一款遊戲') && // 不問其他遊戲
-            !response.includes('Similo 是一款有趣的推理遊戲') && // 不是百科全書開頭
-            !response.includes('12張卡片排成4x3的方陣') && // 不包含詳細規則
-            (response.includes('幾位玩家') || response.includes('玩家人數') || response.includes('Similo')); // 包含環境感知或明確提到Similo
+            (response.includes('幾位玩家') || response.includes('玩家人數')); // 進行環境感知
         
-        if (isGoodResponse) {
-            console.log('🎉 修復成功！回應符合預期');
+        if (hasSimiloSpecialty) {
+            console.log('🎉 規則整合成功！AI 展現了 Similo 專門性');
         } else {
-            console.log('❌ 仍有問題，回應不符合預期');
+            console.log('❌ 仍有問題，AI 沒有展現 Similo 專門性');
+            console.log('  檢查項目:');
+            console.log(`  - 包含 Similo: ${response.includes('Similo')}`);
+            console.log(`  - 不問其他遊戲: ${!response.includes('你想了解哪一款遊戲')}`);
+            console.log(`  - 環境感知: ${response.includes('幾位玩家') || response.includes('玩家人數')}`);
+        }
+        
+        // 檢查 ResponseGenerator 是否載入了規則
+        console.log('\n📚 規則載入狀態檢查:');
+        const generator = processor.responseGenerator;
+        if (generator.similoRules.loaded) {
+            console.log('✅ 規則文件載入成功');
+            console.log(`  - 遊戲規則: ${generator.similoRules.gameRules.length} 字符`);
+            console.log(`  - 角色規則: ${generator.similoRules.roleRules.length} 字符`);
+        } else {
+            console.log('❌ 規則文件載入失敗，使用備用規則');
         }
         
     } catch (error) {
         console.error('❌ 測試失敗:', error.message);
+        console.error(error.stack);
     }
 }
 
-testFix().catch(console.error);
+testRulesIntegration().catch(console.error);

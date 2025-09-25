@@ -2,10 +2,12 @@
   "name": "similo-ai-companion",
   "version": "1.0.0-mvp",
   "description": "Similo AI 陪玩員 - 專業的 Similo 桌遊助手 MVP",
-  "main": "server.js",
+  "main": "api/chat.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "vercel dev",
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'"
   },
   "keywords": [
     "ai",
@@ -20,8 +22,14 @@
   "author": "Similo AI Team",
   "license": "MIT",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BOHARRY/bgAI.git"
+  }
 }

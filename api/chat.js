@@ -130,14 +130,15 @@ class SimpleAIHandler {
 - 可以詢問是否需要幫助
 
 如果是 rule_question（規則問題）：
-- 直接回答規則問題
-- 提供清晰的解釋
+- 簡潔回答具體問題
+- 避免一次性提供所有規則
 - 可以詢問是否還有其他問題
 
 如果是 start_game（開始遊戲）：
-- 先詢問玩家人數
-- 建立連結感
-- 準備引導設置
+- 🚫 不要立即解釋所有規則
+- ✅ 先詢問玩家人數和經驗
+- ✅ 建立連結感，逐步引導
+- ✅ 一步一步來，不要資訊轟炸
 
 請生成一個自然、有幫助的回應。`;
 
@@ -242,13 +243,15 @@ module.exports = async function handler(req, res) {
             console.log(`📚 上下文信息: 歷史=${context.chatHistory?.length || 0}條, 會話=${context.sessionId}`);
         }
 
-        // 使用多 AI 處理器處理消息（Phase 2A）
+        // 使用多 AI 處理器處理消息（Phase 2B - 完整三模組架構）
         let result;
         try {
-            console.log(`🚀 使用多 AI 處理器 (Phase 2A)`);
+            console.log(`🚀 使用多 AI 處理器 (Phase 2B - 三模組架構)`);
             result = await multiAIHandler.processMessage(message, context, callOpenAI);
         } catch (error) {
-            console.warn(`⚠️ 多 AI 處理器失敗，降級到簡單處理器`, error);
+            console.error(`❌ 多 AI 處理器失敗，降級到簡單處理器`, error);
+            console.error(`錯誤詳情:`, error.stack);
+            console.log(`🔄 使用 SimpleAIHandler 降級處理`);
             result = await aiHandler.processMessage(message, context, callOpenAI);
         }
 

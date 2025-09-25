@@ -156,26 +156,28 @@ ${similoKnowledge}
         return guidance;
     }
 
-    // 構建 Similo 知識庫
+    // 構建 Similo 知識庫 (修復：避免資訊轟炸)
     buildSimiloKnowledge(intentResult) {
         const intent = intentResult.intent?.primary_intent;
-        
+
         if (intent === 'rule_question') {
-            return `相關規則：
-基本規則: ${this.similoRules.basic.cards}
-線索規則: ${this.similoRules.basic.clues}
-淘汰規則: ${this.similoRules.basic.elimination}
-勝利條件: ${this.similoRules.basic.victory}`;
+            return `🎯 回答規則問題時：
+- 只回答用戶具體問的問題
+- 不要主動提供其他規則
+- 保持簡潔明確
+- 可以詢問是否需要了解其他部分`;
         }
-        
+
         if (intent === 'start_game') {
-            return `遊戲設置：
-玩家人數: ${this.similoRules.setup.players}
-角色分配: ${this.similoRules.setup.roles}
-所需材料: ${this.similoRules.setup.materials}`;
+            return `🎮 開始遊戲時的引導原則：
+- 🚫 不要立即解釋所有規則
+- ✅ 先進行環境感知（玩家人數、經驗）
+- ✅ 逐步引導設置，一步一步來
+- ✅ 建立親切感，讓玩家感到被照顧
+- 基本信息：${this.similoRules.setup.players}，適合推理愛好者`;
         }
-        
-        return '根據需要提供 Similo 相關知識。';
+
+        return '根據具體情況提供必要的 Similo 知識，避免資訊轟炸。';
     }
 
     // 後處理回應

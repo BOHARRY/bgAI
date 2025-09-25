@@ -192,7 +192,8 @@ class RuleBuddyApp {
                 throw new Error(data.error || 'API 調用失敗');
             }
 
-            console.log('🎯 AI 處理結果:', data.debug);
+            console.log('🎯 AI 處理結果:', JSON.stringify(data.debug, null, 2));
+            console.log(`📋 意圖: ${data.debug.intent} | 策略: ${data.debug.strategy} | 模式: ${data.debug.processingMode}`);
             return data.message;
 
         } catch (error) {

@@ -186,7 +186,7 @@ class RuleBuddyApp {
         });
 
         // 返回最近的對話記錄（限制數量避免 token 過多）
-        return messages.slice(-8); // 最近8條對話
+        return messages.slice(-20); // 最近20條對話 (10對對話)
     }
 
     // 生成會話 ID（簡單實現）

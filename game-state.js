@@ -181,7 +181,7 @@ class GameState {
             remainingCharacters: remaining,
             clueHistory: this.clueArea,
             eliminatedCharacters: this.eliminationArea,
-            actionHistory: this.actionHistory.slice(-10), // 最近10個動作
+            actionHistory: this.actionHistory.slice(-20), // 最近20個動作
             roles: this.roles
         };
         

@@ -18,7 +18,7 @@ class LayeredAIHandler {
 
         // 會話記憶
         this.chatHistory = [];
-        this.maxHistoryLength = 20;
+        this.maxHistoryLength = 40;  // 增加到 40 (20對對話)
 
         // 互動狀態
         this.isInFlow = false;

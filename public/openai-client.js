@@ -1,4 +1,6 @@
 // OpenAI API 客戶端
+// 注意：在瀏覽器環境中，CONFIG 通過 window.CONFIG 訪問
+
 class OpenAIClient {
     constructor(apiUrl = '/api/chat') {
         this.apiUrl = apiUrl;
@@ -52,8 +54,10 @@ class OpenAIClient {
         });
 
         // 限制歷史記錄長度
-        if (this.chatHistory.length > CONFIG.MAX_CHAT_HISTORY) {
-            this.chatHistory = this.chatHistory.slice(-CONFIG.MAX_CHAT_HISTORY);
+        const maxHistory = (typeof CONFIG !== 'undefined' ? CONFIG.MAX_CHAT_HISTORY :
+                           typeof window !== 'undefined' && window.CONFIG ? window.CONFIG.MAX_CHAT_HISTORY : 40);
+        if (this.chatHistory.length > maxHistory) {
+            this.chatHistory = this.chatHistory.slice(-maxHistory);
         }
     }
 

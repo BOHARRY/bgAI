@@ -1,4 +1,6 @@
 // OpenAI API 客戶端
+const CONFIG = require('./config');
+
 class OpenAIClient {
     constructor(apiUrl = '/api/chat') {
         this.apiUrl = apiUrl;

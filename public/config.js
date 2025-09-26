@@ -13,7 +13,7 @@ const CONFIG = {
 
     // UI 配置
     TYPING_DELAY: 50,
-    MAX_CHAT_HISTORY: 20
+    MAX_CHAT_HISTORY: 40  // 增加到 40 (20對對話)
 };
 
 // 導出配置
